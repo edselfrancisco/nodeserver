@@ -1,0 +1,65 @@
+<html>
+
+<head>
+    <link rel="stylesheet" href="/styles.css"> 
+    <title>Web browser Client</title>
+</head>
+
+<body>
+    <h1>HDICAM</h1>
+    <div class="cards"> 
+
+        <div class="card">
+            <img id="ESP32-2" src="" />
+            <h2><b>Temp:</b> <span id = "temp">0</span><span>°C</span></h2>
+        </div>
+    </div>
+    
+    <script>
+        // const img_1 = document.getElementById("ESP32-1");
+        const img_2 = document.getElementById("ESP32-2");
+        
+        var imageFrame;
+
+        const WS_URL = 'ws:///192.168.1.9:8888';
+        const ws = new WebSocket(WS_URL);
+        let urlObject;
+        ws.onopen = () => {
+            console.log(`Connected to ${WS_URL}`);
+            ws.send("WEB_CLIENT");
+        };
+
+        ws.onmessage = async (message) => { 
+            const arrayBuffer = message.data;
+            const messageData = message.data;
+            console.log(messageData);
+
+            if (messageData instanceof Blob) {
+                console.log('It is a Blob!');
+
+                if (urlObject) {
+                    URL.revokeObjectURL(urlObject);
+                }
+                var blobObj = new Blob([arrayBuffer]);
+                const buf = await blobObj.arrayBuffer();
+                var uint8 = new Uint8Array(buf.slice(12, 13));
+                var currentCam = uint8[0];
+                console.log("current Cam: ", currentCam);
+
+                imageFrame = (currentCam == 1) ? img_1 : img_2;
+
+
+                urlObject = URL.createObjectURL(blobObj);
+                imageFrame.src = urlObject;
+
+            } else {
+                const temperature = messageData.substring("Temp:".length);
+                document.getElementById("temp").innerHTML = temperature;
+                console.log("Temperature from Arduino:", temperature); 
+            }
+            
+        }
+    </script>
+</body>
+
+</html>
